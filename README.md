@@ -40,7 +40,7 @@ ollama pull nomic-embed-text
 **Clone and setup:**
 ```bash
 # Clone the repository
-git clone https://github.com/AbdulSametTurkmenoglu/rag_degerlendirme_pipeline.git
+git clone https://github.com/AbdulSametTurkmenoglu/rag_evaluation_pipeline.git
 cd ragas
 
 # Create virtual environment
