@@ -1,99 +1,98 @@
-# RAG Değerlendirme Pipeline'ı (RAGAS)
+# RAG Evaluation Pipeline (RAGAS)
 
-Bu proje, bir RAG (Retrieval-Augmented Generation) sisteminin kalitesini, `ragas` kütüphanesi ve `Anthropic` (Claude) modelleri kullanarak otomatik olarak değerlendiren bir test pipeline'ıdır.
+An automated testing pipeline for evaluating RAG (Retrieval-Augmented Generation) system quality using the `ragas` library and `Anthropic` (Claude) models.
 
-Sistem, bir "test seti" (`test_questions.jsonl`) ve bir "bilgi havuzu" (`corpus.jsonl`) kullanarak, RAG sisteminin performansını 4 ana metrik üzerinden ölçer.
+The system measures RAG performance across 4 core metrics using a test set (`test_questions.jsonl`) and a knowledge corpus (`corpus.jsonl`).
 
-##  Değerlendirme Metrikleri
+##  Evaluation Metrics
 
-Bu pipeline, `ragas` kullanarak aşağıdaki 4 kritik metriği ölçer:
+This pipeline uses `ragas` to measure 4 critical metrics:
 
-1.  **Faithfulness (Cevap Sadakati):**
-    * *Soru:* Üretilen cevap, bulunan bağlam (context) tarafından ne kadar destekleniyor?
-    * *Ölçüm:* Cevaptaki hangi ifadelerin bağlamda karşılığı *olmadığını* (halüsinasyon) tespit eder.
+1. **Faithfulness (Answer Fidelity)**
+   - *Question:* How well is the generated answer supported by the retrieved context?
+   - *Measures:* Detects statements in the answer that are *not* backed by context (hallucinations)
 
-2.  **Answer Relevancy (Cevap İlgililiği):**
-    * *Soru:* Üretilen cevap, sorulan soruyla ne kadar ilgili?
-    * *Ölçüm:* Cevabın, sorudan ne kadar saptığını veya gereksiz bilgi içerip içermediğini analiz eder.
+2. **Answer Relevancy**
+   - *Question:* How relevant is the generated answer to the asked question?
+   - *Measures:* Analyzes whether the answer deviates from the question or contains unnecessary information
 
-3.  **Context Precision (Bağlam Kesinliği):**
-    * *Soru:* Bulunan bağlamın (context) ne kadarı cevabı oluşturmak için *gerçekten* gerekliydi?
-    * *Ölçüm:* Bağlamdaki "gürültüyü" (noise) ölçer. Yüksek puan, sistemin sadece ilgili belgeleri bulduğunu gösterir.
+3. **Context Precision**
+   - *Question:* How much of the retrieved context was *actually* necessary to generate the answer?
+   - *Measures:* Noise in the context. High score indicates the system retrieved only relevant documents
 
-4.  **Context Recall (Bağlam Hatırlaması):**
-    * *Soru:* Bulunan bağlam, "ideal" cevabı (ground truth) oluşturmak için yeterli bilgiyi içeriyor mu?
-    * *Ölçüm:* Sistemin, doğru cevabı verebilmek için gerekli olan bilgiyi bulup bulamadığını ölçer.
+4. **Context Recall**
+   - *Question:* Does the retrieved context contain sufficient information to generate the "ideal" answer (ground truth)?
+   - *Measures:* Whether the system can find the necessary information to provide the correct answer
 
+##  Prerequisites
 
+- **Ollama**: Required for `nomic-embed-text` model (or modify in `src/config.py`)
+- **Anthropic API Key**: Required for Claude models
+- Python 3.8+
 
+##  Installation
 
+**Install Ollama embedding model:**
+```bash
+ollama pull nomic-embed-text
+```
 
-##  Kurulum
+**Clone and setup:**
+```bash
+# Clone the repository
+git clone https://github.com/AbdulSametTurkmenoglu/rag_degerlendirme_pipeline.git
+cd ragas
 
-### 1. Ön Gereksinimler
-* **Ollama:** `nomic-embed-text` modelinin çalışması için gereklidir (veya `src/config.py`'den değiştirin).
-    ```bash
-    ollama pull nomic-embed-text
-    ```
-* **Anthropic API Key:** Claude modellerini kullanmak için bir API anahtarı gereklidir.
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .\.venv\Scripts\activate
 
-### 2. Yerel Kurulum
+# Install dependencies
+pip install -r requirements.txt
 
-1.  **Depoyu Klonlama:**
-    ```bash
-    git clone [https://github.com/AbdulSametTurkmenoglu/rag_degerlendirme_pipeline.git](https://github.com/AbdulSametTurkmenoglu/rag_degerlendirme_pipeline.git)
-    cd ragas
-    ```
+# Setup environment variables
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+```
 
-2.  **Sanal Ortam ve Kütüphaneler:**
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
-    ```
+##  Usage
 
-3.  **.env Dosyası:**
-    `.env.example` dosyasını `.env` olarak kopyalayın ve `ANTHROPIC_API_KEY`'inizi girin.
-
-##  Kullanım
-
-Tüm kurulum tamamlandıktan sonra, değerlendirme pipeline'ını çalıştırmak için:
-
+**Run the evaluation pipeline:**
 ```bash
 python run_evaluation.py
 ```
 
-### Süreç Adımları:
-Script çalıştığında sırayla şunları yapacaktır:
+### Pipeline Steps
 
-1.  `src/config.py`'den API anahtarlarını ve model adlarını okuyacaktır.
-2.  `data/corpus.jsonl`'deki dokümanları kullanarak `storage/` klasöründe bir LlamaIndex (FAISS) oluşturacak veya varsa yükleyecektir.
-3.  `data/test_questions.jsonl`'deki her bir soruyu, `src/rag_system.py`'de tanımlı RAG pipeline'ına soracaktır.
-4.  RAG sisteminden dönen `answer` (cevap) ve `contexts` (bağlam) bilgilerini toplayacaktır.
-5.  Bu bilgileri (`question`, `answer`, `contexts`, `ground_truth`) `ragas`'a gönderecektir.
-6.  `src/reporting.py`'deki fonksiyonu kullanarak terminale detaylı bir rapor basacaktır.
+When executed, the script will:
 
-### Örnek Rapor Çıktısı
+1. Load API keys and model names from `src/config.py`
+2. Create or load a LlamaIndex (FAISS) from documents in `data/corpus.jsonl` (stored in `storage/`)
+3. Query each question from `data/test_questions.jsonl` through the RAG pipeline defined in `src/rag_system.py`
+4. Collect `answer` and `contexts` returned by the RAG system
+5. Send the collected data (`question`, `answer`, `contexts`, `ground_truth`) to `ragas` for evaluation
+6. Print a detailed report to terminal using `src/reporting.py`
 
+### Sample Report Output
 ```
 ====================================================================================================
- RAGAS DEĞERLENDİRME SONUÇLARI
+ RAGAS EVALUATION RESULTS
 ====================================================================================================
 
- SORU 1: Suç ve Ceza romanında Raskolnikov'un suçu nedir?
+ QUESTION 1: What is Raskolnikov's crime in Crime and Punishment?
 ----------------------------------------------------------------------------------------------------
-  Cevap: Raskolnikov'un işlediği suç, bir tefeci kadını öldürmesidir.
-  Ground Truth: Raskolnikov bir tefeci kadını öldürür.
-  Alınan Belgeler: 1 adet
+  Answer: Raskolnikov's crime is murdering a pawnbroker woman.
+  Ground Truth: Raskolnikov murders a pawnbroker woman.
+  Retrieved Documents: 1
 
-  METRIK SONUÇLARI (Puan 0.0 - 1.0):
-    • Faithfulness (Sadakat):      1.0000
-    • Answer Relevancy (İlgililik): 0.9850
-    • Context Precision (Kesinlik): 1.0000
-    • Context Recall (Hatırlama):  1.0000
+  METRIC RESULTS (Score 0.0 - 1.0):
+    • Faithfulness:         1.0000
+    • Answer Relevancy:     0.9850
+    • Context Precision:    1.0000
+    • Context Recall:       1.0000
 
 ====================================================================================================
- ÖZET İSTATİSTİKLER
+ SUMMARY STATISTICS
 ====================================================================================================
 
   Faithfulness        : 0.9500
@@ -103,5 +102,15 @@ Script çalıştığında sırayla şunları yapacaktır:
 
 ====================================================================================================
 
- Değerlendirme tamamlandı!
+ Evaluation completed!
 ```
+
+
+##  Configuration
+
+Edit `src/config.py` to customize:
+- Embedding model (default: `nomic-embed-text` via Ollama)
+- LLM model (default: Claude via Anthropic)
+- Evaluation metrics
+- Storage paths
+
